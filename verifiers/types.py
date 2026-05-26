@@ -44,6 +44,7 @@ ClientType = Literal[
     "renderer",
     "anthropic_messages",
     "nemorl_chat_completions",
+    "custom",
 ]
 EndpointApi = Literal[
     "chat",
@@ -1012,6 +1013,9 @@ class ClientConfig(BaseModel):
 
     client_idx: int = 0
     client_type: ClientType = "openai_chat_completions"
+    class_path: str | None = None
+    """Dotted path to a ``Client`` subclass to instantiate when ``client_type == "custom"``.
+    Lets external packages register their own client without modifying verifiers."""
     renderer: str = "auto"
     renderer_model_name: str | None = None
     renderer_pool_size: int | None = None

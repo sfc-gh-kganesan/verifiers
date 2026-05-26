@@ -50,8 +50,33 @@ def resolve_client(client_or_config: Client | ClientConfig) -> Client:
                 return AnthropicMessagesClient(client_or_config)
             case "nemorl_chat_completions":
                 return NeMoRLChatCompletionsClient(client_or_config)
+            case "custom":
+                return _resolve_custom_client(client_or_config)
     else:
         raise ValueError(f"Unsupported client type: {type(client_or_config)}")
+
+
+def _resolve_custom_client(config: ClientConfig) -> Client:
+    """Instantiate a user-supplied ``Client`` subclass from ``config.class_path``.
+
+    Lets external packages plug a backend in without modifying verifiers.
+    """
+    import importlib
+
+    if not config.class_path:
+        raise ValueError("ClientConfig with client_type='custom' requires class_path to be set.")
+    module_path, _, class_name = config.class_path.rpartition(".")
+    if not module_path:
+        raise ValueError(
+            f"class_path must be a dotted path like 'package.module.ClassName', got {config.class_path!r}"
+        )
+    cls = getattr(importlib.import_module(module_path), class_name)
+    if not (isinstance(cls, type) and issubclass(cls, Client)):
+        raise TypeError(
+            f"class_path={config.class_path!r} resolved to {cls!r}, "
+            f"which is not a verifiers.clients.Client subclass."
+        )
+    return cls(config)
 
 
 def __getattr__(name: str):
